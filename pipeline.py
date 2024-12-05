@@ -154,6 +154,7 @@ if __name__ == "__main__":
     classifier = PointCloudClassifier.load_model('cloud_classifier.pkl', loader)
     
     # Inference example
+    print('\nClassifying distributions...')
     results = classifier.classify_many(training_ids)
 
     csv_file = open('cloud_classification.csv', 'w')

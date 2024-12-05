@@ -27,6 +27,10 @@ class DistributionSeriesClassifier:
     
     def _extract_distribution_features(self, points):
         """Extract statistical features from a single point cloud distribution."""
+        # Some features won't converge or be useful if there are too few points, simply exclude those distributions
+        if points.shape[0] < 30: # 30 because 20 is the minimum for LOF
+            raise ValueError("Distribution has too few points")
+
         # Existing GMM features
         gmm = GaussianMixture(n_components=self.n_components, random_state=42)
         gmm.fit(points)
@@ -125,11 +129,12 @@ class DistributionSeriesClassifier:
             raise RuntimeError("Classifier must be fitted before scoring")
         
         # Extract features
-        if points.shape[0] < 2:
-            return { 'anomaly_score': -1 } # not enough points
-        features = self._extract_distribution_features(points)
-        if np.isnan(features).any():
-            return { 'anomaly_score': -1 } # probably bad if features don't converge
+        try:
+            features = self._extract_distribution_features(points)
+        except ValueError:
+            return {
+                'anomaly_score': np.nan,
+            }
         # Get anomaly score from isolation forest
         anomaly_score = self.isolation_forest.score_samples([features])[0]
 
