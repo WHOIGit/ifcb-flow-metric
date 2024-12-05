@@ -1,0 +1,5 @@
+scikit-learn
+tqdm
+matplotlib
+git+https://github.com/joefutrelle/pyifcb
+
