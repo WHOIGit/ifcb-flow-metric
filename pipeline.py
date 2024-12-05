@@ -39,7 +39,7 @@ class PointCloudClassifier:
         
         # Load all training distributions
         distributions = []
-        for cloud_id in tqdm(training_ids):
+        for cloud_id in tqdm(training_ids, desc="Loading"):
             points = self.get_points(cloud_id)
             distributions.append(points)
         
@@ -120,7 +120,7 @@ class PointCloudClassifier:
         Dictionary with results and summary statistics
         """
         results = {}
-        for cloud_id in cloud_ids:
+        for cloud_id in tqdm(cloud_ids, desc="Classifying"):
             try:
                 result = self.classify_point_cloud(cloud_id, visualize)
                 results[cloud_id] = result
@@ -142,10 +142,6 @@ if __name__ == "__main__":
 
     # Train the classifier
     training_stats = classifier.train(training_ids)
-    print("\nTraining complete!")
-    print("Training statistics:")
-    for key, value in training_stats.items():
-        print(f"{key}: {value}")
     
     # Save the model
     classifier.save_model('cloud_classifier.pkl')
@@ -154,7 +150,6 @@ if __name__ == "__main__":
     classifier = PointCloudClassifier.load_model('cloud_classifier.pkl', loader)
     
     # Inference example
-    print('\nClassifying distributions...')
     results = classifier.classify_many(training_ids)
 
     csv_file = open('cloud_classification.csv', 'w')

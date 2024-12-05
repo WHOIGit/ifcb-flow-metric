@@ -88,11 +88,10 @@ class DistributionSeriesClassifier:
         Parameters:
         distribution_series: list of arrays, each array of shape (n_points, 2)
         """
-        print("Extracting features from distributions...")
         
         # Extract features from each distribution
         features = []
-        for dist in tqdm(distribution_series):
+        for dist in tqdm(distribution_series, desc="Extracting"):
             try:
                 feat = self._extract_distribution_features(dist)
             except:
@@ -101,9 +100,8 @@ class DistributionSeriesClassifier:
                 features.append(feat)
         
         # Fit isolation forest to identify normal pattern at distribution level
-        print("Learning normal pattern...")
         self.isolation_forest = IsolationForest(
-            contamination=self.contamination
+            contamination=self.contamination,
         )
         self.isolation_forest.fit(features)
         
@@ -152,7 +150,11 @@ class DistributionSeriesClassifier:
         Returns:
         list of score dictionaries
         """
-        return [self.score_distribution(dist) for dist in distribution_series]
+        scores = []
+        for dist in tqdm(distribution_series, desc="Scoring"):
+            scores.append(self.score_distribution(dist))
+            
+        return scores
     
     def plot_scores(self, scores):
         """
