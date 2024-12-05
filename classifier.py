@@ -126,10 +126,10 @@ class DistributionSeriesClassifier:
         
         # Extract features
         if points.shape[0] < 2:
-            return { 'anomaly_score': -1, 'is_anomaly': True }
+            return { 'anomaly_score': -1 } # not enough points
         features = self._extract_distribution_features(points)
         if np.isnan(features).any():
-            return { 'anomaly_score': -1, 'is_anomaly': True } # bad!
+            return { 'anomaly_score': -1 } # probably bad if features don't converge
         # Get anomaly score from isolation forest
         anomaly_score = self.isolation_forest.score_samples([features])[0]
 
