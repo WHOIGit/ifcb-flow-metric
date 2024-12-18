@@ -10,53 +10,57 @@ from tqdm import tqdm
 class DistributionSeriesClassifier:
     """
     Analyzes a series of point cloud distributions to identify which ones match
-    the dominant pattern in the dataset.
+    the dominant pattern in the dataset. Accounts for camera aspect ratio.
     """
     
-    def __init__(self, contamination=0.1, n_components=2):
+    def __init__(self, aspect_ratio=1.0, contamination=0.1):
         """
         Initialize classifier.
         
         Parameters:
+        aspect_ratio: float, width/height ratio of the camera frame
         contamination: float, expected fraction of anomalous distributions
-        n_components: int, number of Gaussian components for modeling core pattern
         """
+        self.aspect_ratio = aspect_ratio
         self.contamination = contamination
-        self.n_components = n_components
         self.fitted = False
+    
+    def _normalize_points(self, points):
+        """
+        Normalize points to account for aspect ratio by scaling x coordinates.
+        """
+        normalized = points.copy()
+        normalized[:, 0] = normalized[:, 0] / self.aspect_ratio
+        return normalized
     
     def _extract_distribution_features(self, points):
         """Extract statistical features from a single point cloud distribution."""
-        # Some features won't converge or be useful if there are too few points, simply exclude those distributions
-        if points.shape[0] < 30: # 30 because 20 is the minimum for LOF
+        # Some features won't converge or be useful if there are too few points
+        if points.shape[0] < 30:  # 30 because 20 is the minimum for LOF
             raise ValueError("Distribution has too few points")
 
-        # Existing GMM features
-        gmm = GaussianMixture(n_components=self.n_components, random_state=42)
-        gmm.fit(points)
+        # Normalize points to account for aspect ratio
+        normalized_points = self._normalize_points(points)
+
+        # Single component GMM features
+        gmm = GaussianMixture(n_components=1, random_state=42)
+        gmm.fit(normalized_points)
         
-        means = gmm.means_
-        covs = gmm.covariances_
-        weights = gmm.weights_
+        means = gmm.means_[0]  # Single component mean
+        covs = gmm.covariances_[0]  # Single component covariance
         
-        # Sort by weight for consistent ordering
-        sort_idx = np.argsort(weights)[::-1]
-        means = means[sort_idx]
-        covs = covs[sort_idx]
-        weights = weights[sort_idx]
+        # Basic stats on normalized points
+        center = np.mean(normalized_points, axis=0)
+        spread = np.std(normalized_points, axis=0)
         
-        # Basic stats
-        center = np.mean(points, axis=0)
-        spread = np.std(points, axis=0)
-        
-        # LOF features
+        # LOF features on normalized points
         lof = LocalOutlierFactor(n_neighbors=20, novelty=True)
-        lof.fit(points)
+        lof.fit(normalized_points)
         lof_scores = -lof.negative_outlier_factor_
         
-        # PCA features
+        # PCA features on normalized points
         pca = PCA(n_components=2)
-        pca.fit(points)
+        pca.fit(normalized_points)
         
         # First component angle (in radians)
         first_component = pca.components_[0]
@@ -70,13 +74,12 @@ class DistributionSeriesClassifier:
         
         # Combine all features
         features = np.concatenate([
-            means.flatten(),
-            covs.flatten(),
-            weights,
-            center,
-            spread,
-            [np.mean(lof_scores), np.std(lof_scores)],
-            [angle, eigenvalue_ratio, variance_explained]
+            means.flatten(),  # 2 features
+            covs.flatten(),   # 4 features (2x2 symmetric matrix)
+            center,          # 2 features
+            spread,          # 2 features
+            [np.mean(lof_scores), np.std(lof_scores)],  # 2 features
+            [angle, eigenvalue_ratio, variance_explained]  # 3 features
         ])
         
         return features
@@ -88,7 +91,6 @@ class DistributionSeriesClassifier:
         Parameters:
         distribution_series: list of arrays, each array of shape (n_points, 2)
         """
-        
         # Extract features from each distribution
         features = []
         for dist in tqdm(distribution_series, desc="Extracting"):
@@ -99,16 +101,14 @@ class DistributionSeriesClassifier:
             if not np.isnan(feat).any():
                 features.append(feat)
         
+        features = np.array(features)
+        
         # Fit isolation forest to identify normal pattern at distribution level
         self.isolation_forest = IsolationForest(
             contamination=self.contamination,
+            random_state=42
         )
         self.isolation_forest.fit(features)
-        
-        # Store reference pattern
-        # scores = self.isolation_forest.score_samples(features)
-        # good_idx = np.array(scores >= np.percentile(scores, self.contamination * 100), dtype=bool)
-        # self.reference_features = features[good_idx]
         
         self.fitted = True
         return self
@@ -133,6 +133,7 @@ class DistributionSeriesClassifier:
             return {
                 'anomaly_score': np.nan,
             }
+            
         # Get anomaly score from isolation forest
         anomaly_score = self.isolation_forest.score_samples([features])[0]
 
