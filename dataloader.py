@@ -1,8 +1,8 @@
-import os
-
 import numpy as np
 
 from ifcb import DataDirectory
+
+IFCB_ASPECT_RATIO = 1.36
 
 class AdcLoader(object):
 
