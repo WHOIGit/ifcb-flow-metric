@@ -3,7 +3,6 @@ from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
