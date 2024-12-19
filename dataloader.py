@@ -23,13 +23,4 @@ class AdcLoader(object):
     def __iter__(self):
         for sample_bin in self.dd:
             yield sample_bin.lid
-    
-
-if __name__ == "__main__":
-    directory = os.path.join('/Users/jfutrelle/Data/ifcb-data/example-dataset')
-    assert os.path.exists(directory)
-    loader = AdcLoader(directory)
-    for points in loader:
-        print(points)
-        break
         
