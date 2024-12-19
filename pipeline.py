@@ -1,15 +1,13 @@
 import numpy as np
-import sys
 import pickle
 from typing import List, Dict, Any, Iterable
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from dataloader import AdcLoader
+from dataloader import AdcLoader, IFCB_ASPECT_RATIO
 from classifier import DistributionSeriesClassifier
 
 class PointCloudClassifier:
-    def __init__(self, loader, aspect_ratio: float = 1.0, contamination: float = 0.1):
+    def __init__(self, loader, aspect_ratio: float = IFCB_ASPECT_RATIO, contamination: float = 0.1):
         """
         Initialize classifier with function to retrieve point clouds.
         
@@ -96,7 +94,7 @@ class PointCloudClassifier:
         
         return instance
     
-    def classify_point_cloud(self, cloud_id: str, visualize: bool = False) -> Dict[str, Any]:
+    def classify_point_cloud(self, cloud_id: str) -> Dict[str, Any]:
         """
         Classify a single point cloud by ID.
         
@@ -124,24 +122,12 @@ class PointCloudClassifier:
         # Get scores
         scores = self.classifier.score_distribution(points)
         
-        # Create visualization if requested
-        fig = None
-        if visualize:
-            fig, ax = plt.subplots(figsize=(8, 8))
-            ax.scatter(points[:, 0], points[:, 1], alpha=0.5, s=1)
-            ax.set_title(f'Cloud {cloud_id} (Anomaly Score: {scores["anomaly_score"]:.3f})')
-            ax.set_xlabel('X Position')
-            ax.set_ylabel('Y Position')
-            ax.set_aspect(1/self.aspect_ratio)  # Correct aspect ratio for display
-        
         return {
             'cloud_id': cloud_id,
             'scores': scores,
-            'figure': fig
         }
     
-    def classify_many(self, cloud_ids: Iterable[str], 
-                     visualize: bool = False) -> Dict[str, List[Dict[str, Any]]]:
+    def classify_many(self, cloud_ids: Iterable[str]) -> Dict[str, List[Dict[str, Any]]]:
         """
         Classify multiple point clouds by ID.
         
@@ -154,7 +140,7 @@ class PointCloudClassifier:
         """
         results = {}
         for cloud_id in tqdm(cloud_ids, desc="Classifying"):
-            result = self.classify_point_cloud(cloud_id, visualize)
+            result = self.classify_point_cloud(cloud_id)
             results[cloud_id] = result
     
         return results
@@ -165,7 +151,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Classify point cloud distributions')
     parser.add_argument('data_dir', help='Directory containing point cloud data')
-    parser.add_argument('--aspect-ratio', type=float, default=1.0,
+    parser.add_argument('--aspect-ratio', type=float, default=IFCB_ASPECT_RATIO,
                        help='Camera frame aspect ratio (width/height)')
     parser.add_argument('--contamination', type=float, default=0.1,
                        help='Expected fraction of anomalous distributions')
@@ -174,8 +160,6 @@ if __name__ == "__main__":
     parser.add_argument('--train', action='store_true', help='Train a new model')
     parser.add_argument('--model', default=None,
                        help='Model save/load path')
-    parser.add_argument('--visualize', action='store_true',
-                       help='Generate visualizations for each cloud')
     
     args = parser.parse_args()
     
@@ -201,7 +185,7 @@ if __name__ == "__main__":
         classifier.save_model(args.model)
     
     # Run inference
-    results = classifier.classify_many(training_ids, visualize=args.visualize)
+    results = classifier.classify_many(training_ids)
     
     # Save results
     print(f"Saving results to {args.output}")
