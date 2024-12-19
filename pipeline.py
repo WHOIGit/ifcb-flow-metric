@@ -151,6 +151,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Classify point cloud distributions')
     parser.add_argument('data_dir', help='Directory containing point cloud data')
+    parser.add_argument('--id-file', default=None, help='File containing list of IDs to use for training')
     parser.add_argument('--aspect-ratio', type=float, default=IFCB_ASPECT_RATIO,
                        help='Camera frame aspect ratio (width/height)')
     parser.add_argument('--contamination', type=float, default=0.1,
@@ -164,7 +165,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Initialize loader and classifier
-    loader = AdcLoader(args.data_dir)
+    loader = AdcLoader(args.data_dir, id_file=args.id_file)
     classifier = PointCloudClassifier(
         loader,
         aspect_ratio=args.aspect_ratio,

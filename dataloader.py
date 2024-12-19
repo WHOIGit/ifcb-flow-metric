@@ -6,8 +6,9 @@ IFCB_ASPECT_RATIO = 1.36
 
 class AdcLoader(object):
 
-    def __init__(self, directory='.'):
+    def __init__(self, directory='.', id_file=None):
         self.dd = DataDirectory(directory)
+        self.id_file = id_file
 
     def _get_points(self, pid):
         sample_bin = self.dd[pid]
@@ -21,6 +22,11 @@ class AdcLoader(object):
         return self._get_points(pid)
     
     def __iter__(self):
-        for sample_bin in self.dd:
-            yield sample_bin.lid
+        if self.id_file is None:
+            for sample_bin in self.dd:
+                yield sample_bin.lid
+        else:
+            with open(self.id_file) as f:
+                for line in f:
+                    yield line.strip()
         
