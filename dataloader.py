@@ -2,31 +2,40 @@ import numpy as np
 
 from ifcb import DataDirectory
 
+from utilities import parallel_map
+
+
 IFCB_ASPECT_RATIO = 1.36
 
-class AdcLoader(object):
 
-    def __init__(self, directory='.', id_file=None):
-        self.dd = DataDirectory(directory)
-        self.id_file = id_file
+def get_points(pid, directory='.'):
+    try:
+        dd = DataDirectory(directory)
 
-    def _get_points(self, pid):
-        sample_bin = self.dd[pid]
+        sample_bin = dd[pid]
         cols = sample_bin.schema
         adc = sample_bin.adc
-        return np.vstack(
+
+        points = np.vstack(
             [adc[cols.ROI_X], adc[cols.ROI_Y]]
         ).T.astype(np.float64)
+
+        if pid.startswith('I'):
+            # invert y-axis for old-style instruments
+            points[:, 1] = -points[:, 1]
     
-    def __getitem__(self, pid):
-        return self._get_points(pid)
+        return { 'pid': pid, 'points': points }
     
-    def __iter__(self):
-        if self.id_file is None:
-            for sample_bin in self.dd:
-                yield sample_bin.lid
-        else:
-            with open(self.id_file) as f:
-                for line in f:
-                    yield line.strip()
-        
+    except Exception as e:
+
+        return { 'pid': pid, 'points': None }
+
+
+def get_points_parallel(pids, directory='.', n_jobs=-1):
+    return parallel_map(
+        get_points,
+        pids,
+        lambda x: (x, directory),
+        n_jobs=n_jobs
+    )
+

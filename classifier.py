@@ -1,3 +1,4 @@
+import time
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
@@ -5,6 +6,11 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.ensemble import IsolationForest
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+
+from ifcb import DataDirectory
+
+from dataloader import IFCB_ASPECT_RATIO, get_points_parallel
+from utilities import parallel_map
 
 class DistributionSeriesClassifier:
     """
@@ -168,3 +174,117 @@ class DistributionSeriesClassifier:
         plt.xlabel('Anomaly Score')
         plt.ylabel('Frequency')
         plt.show()
+
+
+def extract_features(load_result, aspect_ratio = IFCB_ASPECT_RATIO):
+    """Extract statistical features from a single point cloud distribution."""
+
+    try:
+        pid = load_result['pid']
+        points = load_result['points']
+
+        # some features won't converge or be useful if there are too few points
+        if points.shape[0] < 30:  # 30 because 20 is the minimum for LOF
+            raise ValueError("Distribution has too few points")
+
+        # Normalize points to account for aspect ratio
+        normalized_points = points.copy()
+        normalized_points[:, 0] = normalized_points[:, 0] / aspect_ratio
+
+        # Single component GMM features
+        gmm = GaussianMixture(n_components=1, random_state=42)
+        gmm.fit(normalized_points)
+        
+        means = gmm.means_[0]  # Single component mean
+        covs = gmm.covariances_[0]  # Single component covariance
+        
+        # Basic stats on normalized points
+        center = np.mean(normalized_points, axis=0)
+        spread = np.std(normalized_points, axis=0)
+        
+        # LOF features on normalized points
+        lof = LocalOutlierFactor(n_neighbors=20, novelty=True)
+        lof.fit(normalized_points)
+        lof_scores = -lof.negative_outlier_factor_
+        
+        # PCA features on normalized points
+        pca = PCA(n_components=2)
+        pca.fit(normalized_points)
+        
+        # First component angle (in radians)
+        first_component = pca.components_[0]
+        angle = np.arctan2(first_component[1], first_component[0])
+        
+        # Ratio of eigenvalues (indicates shape elongation)
+        eigenvalue_ratio = pca.explained_variance_ratio_[0] / pca.explained_variance_ratio_[1]
+        
+        # Percent variance explained by first component
+        variance_explained = pca.explained_variance_ratio_[0]
+        
+        # Combine all features
+        features = np.concatenate([
+            means.flatten(),  # 2 features
+            covs.flatten(),   # 4 features (2x2 symmetric matrix)
+            center,          # 2 features
+            spread,          # 2 features
+            [np.mean(lof_scores), np.std(lof_scores)],  # 2 features
+            [angle, eigenvalue_ratio, variance_explained]  # 3 features
+        ])
+        
+        return { 'pid': pid, 'features': features }
+    
+    except Exception as e:
+
+        return { 'pid': pid, 'features': None }
+    
+
+def extract_features_parallel(load_results, aspect_ratio = IFCB_ASPECT_RATIO, n_jobs=-1):
+    return parallel_map(
+        extract_features,
+        load_results,
+        lambda x: (x, aspect_ratio),
+        n_jobs=n_jobs
+    )
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Train a classifier on point cloud data')
+    parser.add_argument('data_dir', help='Directory containing point cloud data')
+    parser.add_argument('--id-file', default=None, help='File containing list of IDs to load')
+    parser.add_argument('--n-jobs', type=int, default=-1, help='Number of parallel jobs')
+    parser.add_argument('--contamination', type=float, default=0.1, help='Expected fraction of anomalous distributions')
+    parser.add_argument('--aspect-ratio', type=float, default=IFCB_ASPECT_RATIO, help='Camera frame aspect ratio (width/height)')
+    
+    args = parser.parse_args()
+    
+    # Load point cloud data
+    if args.id_file is not None:
+        with open(args.id_file, 'r') as f:
+            pids = [line.strip() for line in f]
+    else:
+        pids = []
+        for bin in DataDirectory(args.data_dir):
+            pids.append(bin.lid)
+    
+    # for testing purposes, append the list of pids to itself n times
+    n = 20
+    pids = pids * n
+
+    then = time.time()
+    
+    # Extract features from point clouds
+    load_results = get_points_parallel(pids, args.data_dir, args.n_jobs)
+
+    print(f'Loaded points for {len(load_results)} distributions')
+
+    print(f'Elapsed time: {time.time() - then:.2f} seconds')
+    
+    feature_results = extract_features_parallel(load_results, aspect_ratio=args.aspect_ratio, n_jobs=args.n_jobs)
+    
+    print(f'Extracted features for {len(feature_results)} distributions')
+
+    elapsed = time.time() - then
+
+    print(f'Elapsed time: {elapsed:.2f} seconds')
