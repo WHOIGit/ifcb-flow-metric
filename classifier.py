@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from ifcb import DataDirectory
 
-from dataloader import IFCB_ASPECT_RATIO
+from dataloader import IFCB_ASPECT_RATIO, get_points
 from utilities import parallel_map
 
     
@@ -83,20 +83,40 @@ def extract_features(load_result, aspect_ratio = IFCB_ASPECT_RATIO):
             [angle, eigenvalue_ratio, variance_explained]  # 3 features
         ])
         
+        # delete everything but the features to save memory
+        del normalized_points
+        del gmm
+        del lof
+        del pca
+
         return { 'pid': pid, 'features': features }
     
     except Exception as e:
 
         return { 'pid': pid, 'features': None }
-    
 
-def extract_features_parallel(load_results, aspect_ratio = IFCB_ASPECT_RATIO, n_jobs=-1):
-    return parallel_map(
-        extract_features,
-        load_results,
-        lambda x: (x, aspect_ratio),
-        n_jobs=n_jobs
-    )
+
+def load_extract(pids, directory, aspect_ratio = IFCB_ASPECT_RATIO):
+    """
+    Load and extract features from a list of point cloud distributions.
+    
+    Parameters:
+
+    pids: list of distribution IDs
+    directory: str, path to the data directory
+    aspect_ratio: float, width/height ratio of the camera frame
+
+    Returns:
+
+    List of feature dictionaries
+    """
+
+    load_results = [get_points(pid, directory) for pid in pids]
+    feature_results = [extract_features(load_result, aspect_ratio) for load_result in load_results]
+
+    del load_results # discard point clouds to save memory
+
+    return feature_results
 
 
 def train_classifier(feature_results, contamination=0.1, n_jobs: int = -1):
