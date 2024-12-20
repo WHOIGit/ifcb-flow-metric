@@ -194,7 +194,6 @@ def score_distributions(classifier, feature_results):
     
     Parameters:
     classifier: trained IsolationForest instance
-    load_results: list of load results
     """
     features = []
     pids = []
