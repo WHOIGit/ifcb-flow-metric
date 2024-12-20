@@ -1,3 +1,4 @@
+import pickle
 import time
 import numpy as np
 from sklearn.decomposition import PCA
@@ -153,3 +154,26 @@ def score_distributions(classifier, feature_results):
     anomaly_scores.extend([{'pid': pid, 'anomaly_score': np.nan} for pid in bad_pids])
     
     return anomaly_scores
+
+
+def save_model(classifier, filepath: str):
+    """
+    Save the classifier to a file.
+    
+    Parameters:
+    classifier: trained IsolationForest instance
+    filepath: str, path to save the model
+    """
+    with open(filepath, 'wb') as f:
+        pickle.dump(classifier, f)
+
+
+def load_model(filepath: str):
+    """
+    Load a classifier from a file.
+    
+    Parameters:
+    filepath: str, path to load the model from
+    """
+    with open(filepath, 'rb') as f:
+        return pickle.load(f)
