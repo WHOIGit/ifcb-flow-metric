@@ -1,5 +1,7 @@
 import pickle
 import time
+from typing import Any, Dict, List
+from joblib import Parallel, delayed
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
@@ -117,6 +119,47 @@ def load_extract(pids, directory, aspect_ratio = IFCB_ASPECT_RATIO):
     del load_results # discard point clouds to save memory
 
     return feature_results
+
+
+def load_extract_parallel(
+    pids: List[str],
+    directory: str,
+    chunk_size: int = 100,
+    n_jobs: int = -1,
+    aspect_ratio: float = IFCB_ASPECT_RATIO
+) -> List[Dict[str, Any]]:
+    """
+    Process PIDs in parallel chunks to manage memory usage
+    
+    Parameters:
+    pids: List of all PIDs to process
+    directory: Data directory path
+    chunk_size: Number of PIDs to process in each chunk
+    n_jobs: Number of parallel jobs (-1 for all cores)
+    aspect_ratio: Camera frame aspect ratio
+    
+    Returns:
+    List of feature dictionaries
+    """
+    # Create chunks
+    chunks = [pids[i:i + chunk_size] for i in range(0, len(pids), chunk_size)]
+    
+    print(f"Processing {len(pids)} PIDs in {len(chunks)} chunks of size {chunk_size}")
+    
+    # Process chunks in parallel
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(load_extract)(chunk, directory, aspect_ratio)
+        for chunk in tqdm(chunks, desc="Processing chunks")
+    )
+    
+    # Flatten results
+    flattened_results = []
+    for chunk_result in results:
+        flattened_results.extend(chunk_result)
+    
+    print(f"Processed {len(flattened_results)} PIDs successfully")
+    
+    return flattened_results
 
 
 def train_classifier(feature_results, contamination=0.1, n_jobs: int = -1):
