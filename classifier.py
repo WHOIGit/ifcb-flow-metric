@@ -9,8 +9,9 @@ from tqdm import tqdm
 
 from ifcb import DataDirectory
 
-from dataloader import IFCB_ASPECT_RATIO, get_points_parallel
+from dataloader import IFCB_ASPECT_RATIO
 from utilities import parallel_map
+
 
 class DistributionSeriesClassifier:
     """
@@ -245,3 +246,60 @@ def extract_features_parallel(load_results, aspect_ratio = IFCB_ASPECT_RATIO, n_
         lambda x: (x, aspect_ratio),
         n_jobs=n_jobs
     )
+
+
+def train_classifier(feature_results, contamination=0.1, n_jobs: int = -1):
+    """
+    Train a classifier using a list of feature results.
+    
+    Parameters:
+    feature_results: list of feature dictionaries
+    contamination: float, expected fraction of anomalous distributions
+    """
+    features = []
+    for result in feature_results:
+        if result['features'] is not None:
+            features.append(result['features'])
+    
+    features = np.array(features)
+    
+    # Fit isolation forest to identify normal pattern at distribution level
+    isolation_forest = IsolationForest(
+        contamination=contamination,
+        random_state=42,
+        n_jobs=n_jobs
+    )
+    isolation_forest.fit(features)
+    
+    return isolation_forest
+
+
+def score_distributions(classifier, feature_results):
+    """
+    Score a series of distributions using a trained classifier.
+    
+    Parameters:
+    classifier: trained IsolationForest instance
+    load_results: list of load results
+    """
+    features = []
+    pids = []
+    bad_pids = []
+    for result in feature_results:
+        if result['features'] is not None:
+            pids.append(result['pid'])
+            features.append(result['features'])
+        else:
+            bad_pids.append(result['pid'])
+    
+    features = np.array(features)
+    
+    # Get anomaly scores from isolation forest
+    anomaly_scores = [{
+        'pid': pid,
+        'anomaly_score': score
+    } for pid, score in zip(pids, classifier.score_samples(features))]
+
+    anomaly_scores.extend([{'pid': pid, 'anomaly_score': np.nan} for pid in bad_pids])
+    
+    return anomaly_scores
