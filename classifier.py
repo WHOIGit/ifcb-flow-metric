@@ -30,6 +30,36 @@ def plot_scores(scores):
     plt.show()
 
 
+def extract_edge_features(points, edge_tolerance=3):
+    """Extract features related to points on frame edges.
+    
+    Parameters:
+    points: nx2 array of x,y coordinates
+    edge_tolerance: distance from edge to consider a point "on edge"
+    
+    Returns:
+    Array of edge-related features
+    """
+    # Get frame dimensions 
+    x_max, y_max = points.max(axis=0)
+    
+    # Find points near edges
+    left_edge = points[points[:,0] <= edge_tolerance]
+    right_edge = points[points[:,0] >= x_max - edge_tolerance]
+    top_edge = points[points[:,1] <= edge_tolerance]
+    bottom_edge = points[points[:,1] >= y_max - edge_tolerance]
+    
+    # Calculate features
+    edge_fractions = [
+        len(edge) / len(points) for edge in 
+        [left_edge, right_edge, top_edge, bottom_edge]
+    ]
+    
+    total_edge_fraction = sum(len(edge) for edge in [left_edge, right_edge, top_edge, bottom_edge]) / len(points)
+    
+    return np.array(edge_fractions + [total_edge_fraction])
+
+
 def extract_features(load_result, aspect_ratio = IFCB_ASPECT_RATIO):
     """Extract statistical features from a single point cloud distribution."""
 
@@ -44,6 +74,9 @@ def extract_features(load_result, aspect_ratio = IFCB_ASPECT_RATIO):
         # Normalize points to account for aspect ratio
         normalized_points = points.copy()
         normalized_points[:, 0] = normalized_points[:, 0] / aspect_ratio
+
+        # Edge features (on original points)
+        edge_features = extract_edge_features(points)
 
         # Single component GMM features
         gmm = GaussianMixture(n_components=1, random_state=42)
@@ -82,7 +115,8 @@ def extract_features(load_result, aspect_ratio = IFCB_ASPECT_RATIO):
             center,          # 2 features
             spread,          # 2 features
             [np.mean(lof_scores), np.std(lof_scores)],  # 2 features
-            [angle, eigenvalue_ratio, variance_explained]  # 3 features
+            [angle, eigenvalue_ratio, variance_explained],  # 3 features
+            edge_features
         ])
         
         # delete everything but the features to save memory
