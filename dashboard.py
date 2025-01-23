@@ -1,14 +1,25 @@
+import os
+import re
 import dash
 from dash import html, dcc, Input, Output
 import plotly.express as px
 import pandas as pd
 import numpy as np
 from time import time, sleep
+import requests
+import argparse
+
+DASHBOARD_BASE_URL = os.getenv('DASHBOARD_BASE_URL', 'http://localhost:8000')
 
 def load_point_cloud(pid):
     """Load point cloud data for a given PID."""
-    sleep(0.5)  # Simulate loading time
-    return np.random.rand(100, 2)
+    URL=f'{DASHBOARD_BASE_URL}/api/plot/{pid}'
+    response = requests.get(URL)
+    if response.status_code != 200:
+        return np.random.rand(1,2)
+    else:
+        j = response.json()
+        return np.dstack((j['roi_x'], j['roi_y']))[0]
 
 def plot_2d_point_cloud(points):
     """Create a scatter plot of a 2D point cloud."""
@@ -20,17 +31,40 @@ def plot_2d_point_cloud(points):
     )
     fig.update_layout(
         showlegend=False,
-        margin=dict(l=20, r=20, t=40, b=20)
+        margin=dict(l=20, r=20, t=40, b=20),
+        yaxis=dict(
+            scaleanchor="x",
+            scaleratio=1,
+        )
     )
     return fig
 
-# Generate sample data
-dates = pd.date_range("2023-01-01", "2023-01-31", periods=100)
-df = pd.DataFrame({
-    'timestamp': dates,
-    'anomaly_score': np.random.uniform(0, 1, size=100),
-    'pid': [f'sample_{i:04d}' for i in range(100)]
-})
+def pid_to_datetime(pid):
+    if pid.startswith('D'):
+        return pd.to_datetime(pid[1:16], format='%Y%m%dT%H%M%S')
+    elif pid.startswith('I'):
+        ts = re.sub(r'^IFCB\d_', '', pid)
+        return pd.to_datetime(ts[0:15], format='%Y_%j_%H%M%S')
+
+def load_data(file_path, month=None):
+    print(f'loading data from {file_path}')
+    data = pd.read_csv(file_path)
+    dates = [pid_to_datetime(pid) for pid in data['pid']]
+    df = pd.DataFrame({
+        'timestamp': dates,
+        'anomaly_score': data['anomaly_score'],
+        'pid': data['pid']
+    })
+    
+    if month:
+        year = int(month[:4])
+        month_num = int(month[4:])
+        df = df[
+            (df['timestamp'].dt.year == year) & 
+            (df['timestamp'].dt.month == month_num)
+        ]
+    
+    return df
 
 app = dash.Dash(__name__)
 
@@ -63,7 +97,7 @@ app.layout = html.Div([
     Input('anomaly-time-series', 'id')
 )
 def update_timeline(_):
-    fig = px.line(
+    fig = px.scatter(
         df, 
         x='timestamp', 
         y='anomaly_score',
@@ -103,6 +137,7 @@ def update_on_hover(hover_data, last_hover):
             points = load_point_cloud(pid)
             figure = plot_2d_point_cloud(points)
             details = html.P([
+                html.Strong("PID: "), pid, html.Br(),
                 html.Strong("Anomaly Score: "), f"{score:.4f}"
             ])
             return current_time, pid, figure, details
@@ -113,4 +148,15 @@ def update_on_hover(hover_data, last_hover):
     return current_time, '', {}, None
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Interactive Point Cloud Anomaly Explorer')
+    parser.add_argument('--file', default='/Users/jfutrelle/Data/flow-scores/mvco_scores_nonan.csv',
+                        help='Path to the CSV file containing anomaly scores')
+    parser.add_argument('--month', help='Month to display in YYYYMM format (e.g., 202401)')
+    args = parser.parse_args()
+    
+    df = load_data(args.file, args.month)
+    if len(df) == 0:
+        print(f"No data found for month {args.month}")
+        exit(1)
+        
     app.run_server(debug=True)
