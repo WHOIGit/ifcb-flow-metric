@@ -109,7 +109,8 @@ def update_timeline(_):
     fig.update_layout(
         hovermode='x',
         hoverlabel=dict(bgcolor="white"),
-        margin=dict(l=20, r=20, t=40, b=20)
+        margin=dict(l=20, r=20, t=40, b=20),
+        yaxis=dict(fixedrange=True),
     )
     return fig
 
@@ -167,4 +168,4 @@ if __name__ == '__main__':
         df = df.iloc[::args.decimate, :]
         print(f'Decimated data to {len(df)} records')
         
-    app.run_server(debug=False)
+    app.run_server(debug=True)
