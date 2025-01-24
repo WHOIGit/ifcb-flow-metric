@@ -63,7 +63,7 @@ def load_data(file_path, month=None):
             (df['timestamp'].dt.year == year) & 
             (df['timestamp'].dt.month == month_num)
         ]
-    
+    print(f'loaded {len(df)} records')
     return df
 
 app = dash.Dash(__name__)
@@ -152,11 +152,15 @@ if __name__ == '__main__':
     parser.add_argument('--file', default='/Users/jfutrelle/Data/flow-scores/mvco_scores_nonan.csv',
                         help='Path to the CSV file containing anomaly scores')
     parser.add_argument('--month', help='Month to display in YYYYMM format (e.g., 202401)')
+    parser.add_argument('--decimate', type=int, default=10, help='Decimation factor for time series plot')
     args = parser.parse_args()
     
     df = load_data(args.file, args.month)
     if len(df) == 0:
         print(f"No data found for month {args.month}")
         exit(1)
+    if args.decimate > 1:
+        print('decimating data')
+        df = df.iloc[::args.decimate, :]
         
     app.run_server(debug=True)
