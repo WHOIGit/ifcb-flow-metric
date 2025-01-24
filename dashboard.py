@@ -126,8 +126,8 @@ def update_on_hover(hover_data, last_hover):
         return time(), '', {}, None
 
     current_time = time()
-    if current_time - last_hover < 0.5:
-        raise dash.exceptions.PreventUpdate
+    # if current_time - last_hover < 0.5:
+    #    raise dash.exceptions.PreventUpdate
 
     try:
         timestamp = pd.Timestamp(hover_data['points'][0]['x'])
@@ -167,4 +167,4 @@ if __name__ == '__main__':
         df = df.iloc[::args.decimate, :]
         print(f'Decimated data to {len(df)} records')
         
-    app.run_server(debug=True)
+    app.run_server(debug=False)
