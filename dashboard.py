@@ -11,6 +11,9 @@ import argparse
 
 DASHBOARD_BASE_URL = os.getenv('DASHBOARD_BASE_URL', 'http://localhost:8000')
 
+def dashboard_link(pid):
+    return f'{DASHBOARD_BASE_URL}/bin?bin={pid}'
+
 def load_point_cloud(pid):
     """Load point cloud data for a given PID."""
     URL=f'{DASHBOARD_BASE_URL}/api/plot/{pid}'
@@ -115,9 +118,8 @@ def update_timeline(_):
      Output('selected-pid', 'children'),
      Output('2d-point-cloud', 'figure'),
      Output('point-cloud-details', 'children')],
-    [Input('anomaly-time-series', 'hoverData'),
+    [Input('anomaly-time-series', 'clickData'),
      Input('last-hover-time', 'data')],
-    prevent_initial_call=True
 )
 def update_on_hover(hover_data, last_hover):
     if hover_data is None:
@@ -137,7 +139,9 @@ def update_on_hover(hover_data, last_hover):
             points = load_point_cloud(pid)
             figure = plot_2d_point_cloud(points)
             details = html.P([
-                html.Strong("PID: "), pid, html.Br(),
+                html.Strong("PID: "), 
+                html.A(pid, href=dashboard_link(pid), target="_blank"), 
+                html.Br(),
                 html.Strong("Anomaly Score: "), f"{score:.4f}"
             ])
             return current_time, pid, figure, details
@@ -160,7 +164,7 @@ if __name__ == '__main__':
         print(f"No data found for month {args.month}")
         exit(1)
     if args.decimate > 1:
-        print('decimating data')
         df = df.iloc[::args.decimate, :]
+        print(f'Decimated data to {len(df)} records')
         
     app.run_server(debug=True)
