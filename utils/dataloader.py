@@ -1,12 +1,7 @@
-import numpy as np
-
 from ifcb import DataDirectory
-
-from utilities import parallel_map
-
-
-IFCB_ASPECT_RATIO = 1.36
-
+import numpy as np
+from utils.utilities import parallel_map
+from tqdm import tqdm
 
 def get_points(pid, directory='.'):
     try:
@@ -38,4 +33,5 @@ def get_points_parallel(pids, directory='.', n_jobs=-1):
         lambda x: (x, directory),
         n_jobs=n_jobs
     )
+
 
