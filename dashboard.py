@@ -11,6 +11,11 @@ import argparse
 
 DASHBOARD_BASE_URL = os.getenv('DASHBOARD_BASE_URL', 'http://localhost:8000')
 
+# Environment Variables
+FILE_PATH = os.getenv('FILE_PATH', 'scores.csv')
+MONTH = os.getenv('MONTH', None)
+DECIMATE = int(os.getenv('DECIMATE', 10))
+
 def dashboard_link(pid):
     return f'{DASHBOARD_BASE_URL}/bin?bin={pid}'
 
@@ -152,20 +157,38 @@ def update_on_hover(hover_data, last_hover):
         
     return current_time, '', {}, None
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Interactive Point Cloud Anomaly Explorer')
-    parser.add_argument('--file', default='/Users/jfutrelle/Data/flow-scores/mvco_scores_nonan.csv',
-                        help='Path to the CSV file containing anomaly scores')
-    parser.add_argument('--month', help='Month to display in YYYYMM format (e.g., 202401)')
-    parser.add_argument('--decimate', type=int, default=10, help='Decimation factor for time series plot')
-    args = parser.parse_args()
-    
-    df = load_data(args.file, args.month)
+# Load data outside main block so Gunicorn can access it
+df = None
+try:
+    df = load_data(FILE_PATH, MONTH)
     if len(df) == 0:
-        print(f"No data found for month {args.month}")
+        print("No data found")
         exit(1)
-    if args.decimate > 1:
-        df = df.iloc[::args.decimate, :]
+    if DECIMATE > 1:
+        df = df.iloc[::DECIMATE, :]
         print(f'Decimated data to {len(df)} records')
+except Exception as e:
+    print(f"Error loading data: {e}")
+
+
+# Gunicorn entry point
+server = app.server
+
+# CLI mode
+if __name__ == '__main__':
+    # parser = argparse.ArgumentParser(description='Interactive Point Cloud Anomaly Explorer')
+    # parser.add_argument('--file', default='scores.csv',
+    #                     help='Path to the CSV file containing anomaly scores')
+    # parser.add_argument('--month', help='Month to display in YYYYMM format (e.g., 202401)')
+    # parser.add_argument('--decimate', type=int, default=10, help='Decimation factor for time series plot')
+    # args = parser.parse_args()
+    
+    # df = load_data(args.file, args.month)
+    # if len(df) == 0:
+    #     print(f"No data found for month {args.month}")
+    #     exit(1)
+    # if args.decimate > 1:
+    #     df = df.iloc[::args.decimate, :]
+    #     print(f'Decimated data to {len(df)} records')
         
     app.run_server(debug=True)
