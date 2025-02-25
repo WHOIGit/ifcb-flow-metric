@@ -60,8 +60,6 @@ def main():
     inferencer = Inferencer(classifier)
     scores = inferencer.score_distributions(feature_results)
 
-    print(scores)
-
     elapsed = time.time() - then
 
     print(f'Scored {len(scores)} point clouds in {elapsed:.2f} seconds')
