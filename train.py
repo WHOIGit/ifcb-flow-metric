@@ -48,8 +48,10 @@ def main():
     # Train the classifier
     print(f'Training classifier')
     trainer = ModelTrainer(filepath=args.model, contamination=args.contamination, n_jobs=args.n_jobs)
-    
+
     classifier = trainer.train_classifier(feature_results)
+
+    elapsed = time.time() - then
 
     print(f'Trained classifier in {elapsed:.2f} seconds')
 
