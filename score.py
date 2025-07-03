@@ -36,7 +36,7 @@ def main():
         with open(args.id_file) as f:
             pids = [line.strip() for line in f]
     else:
-        pids = [bin.lid for bin in DataDirectory(args.data_dir)]
+        pids = [bin.lid for bin in DataDirectory(args.data_dir, require_roi_files=False)]
     
     
     extractor = FeatureExtractor(aspect_ratio=args.aspect_ratio)
