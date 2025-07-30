@@ -16,9 +16,9 @@ def get_points(pid, directory='.'):
         ).T.astype(np.float64)
 
         if pid.startswith('I'):
-            t_col = cols.FRAME_GRAB_TIME
+            t_col = cols.PROCESSING_END_TIME
         else:
-            t_col = cols.GRAB_TIME_START
+            t_col = cols.ADC_TIME
 
         t = adc[t_col]
     

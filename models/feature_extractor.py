@@ -121,7 +121,7 @@ class FeatureExtractor:
 
             # time features
             second_t_value = t[1] if len(t) > 1 else t[0]
-            t_var = np.var(t)
+            t_var = np.var(np.diff(t)) if len(t) > 1 else 0.0
 
             features = np.concatenate(
                 [
