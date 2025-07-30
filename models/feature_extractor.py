@@ -68,6 +68,7 @@ class FeatureExtractor:
         try:
             pid = load_result["pid"]
             points = load_result["points"]
+            t = load_result["t"]
             if points is None or len(points) < 30:
                 raise ValueError("Distribution has too few points")
 
@@ -118,6 +119,10 @@ class FeatureExtractor:
 
             edge_features = self._edge_features(original_points)
 
+            # time features
+            second_t_value = t[1] if len(t) > 1 else t[0]
+            t_var = np.var(t)
+
             features = np.concatenate(
                 [
                     mean,
@@ -130,6 +135,7 @@ class FeatureExtractor:
                     [skew_x, skew_y, kurt_x, kurt_y],
                     [angle, eigen_ratio],
                     edge_features,
+                    [second_t_value, t_var],
                 ]
             )
             return {"pid": pid, "features": features}
