@@ -16,7 +16,10 @@ def main():
     parser.add_argument('--aspect-ratio', type=float, default=IFCB_ASPECT_RATIO, help='Camera frame aspect ratio (width/height)')
     parser.add_argument('--chunk-size', type=int, default=CHUNK_SIZE, help='Number of PIDs to process in each chunk')
     parser.add_argument('--model', default=MODEL, help='Model save/load path')
-    parser.add_argument('--feature-config', help='YAML file specifying which features to use for training')
+    # Feature configuration options (mutually exclusive)
+    config_group = parser.add_mutually_exclusive_group()
+    config_group.add_argument('--config', help='YAML string specifying which features to use for training')
+    config_group.add_argument('--config-file', help='YAML file path specifying which features to use for training')
     
     args = parser.parse_args()
 
@@ -35,9 +38,19 @@ def main():
     
     # Load feature configuration if provided
     feature_config = None
-    if args.feature_config:
-        print(f'Loading feature configuration from {args.feature_config}')
-        feature_config = load_feature_config(args.feature_config)
+    if args.config:
+        print('Loading feature configuration from YAML string')
+        import yaml
+        feature_config = yaml.safe_load(args.config)
+        
+        # Count enabled features for reporting
+        enabled_count = sum(1 for category in feature_config.values() 
+                          if isinstance(category, dict)
+                          for enabled in category.values() if enabled)
+        print(f'Using {enabled_count} enabled features')
+    elif args.config_file:
+        print(f'Loading feature configuration from {args.config_file}')
+        feature_config = load_feature_config(args.config_file)
         
         # Count enabled features for reporting
         enabled_count = sum(1 for category in feature_config.values() 

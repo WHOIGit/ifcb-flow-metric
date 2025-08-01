@@ -38,12 +38,39 @@ Options:
 - `--aspect-ratio` – camera frame aspect ratio.
 - `--chunk-size` – number of PIDs per extraction chunk.
 - `--model` – output path for the trained model (default `classifier.pkl`).
+- `--config` – YAML string specifying which features to use for training.
+- `--config-file` – YAML file path specifying which features to use for training.
 
 A typical command might look like:
 
 ```bash
 python train.py /path/to/data --n-jobs 4 --contamination 0.00001
 ```
+
+### Feature Selection
+
+By default, all 27 available features are used for training. You can customize which features to include using either:
+
+1. **YAML configuration file:**
+   ```bash
+   python train.py /path/to/data --config-file feature_config.yaml
+   ```
+
+2. **YAML string directly:**
+   ```bash
+   python train.py /path/to/data --config 'spatial_stats: {mean_x: true, mean_y: true}'
+   ```
+
+The repository includes `feature_config.yaml` as an example configuration file with all features enabled. Features are organized into categories:
+
+- **Spatial Statistics** (8 features): mean, std, median, IQR for x/y coordinates
+- **Distribution Shape** (2 features): ratio_spread, core_fraction
+- **Clipping Detection** (2 features): duplicate_fraction, max_duplicate_fraction
+- **Histogram Uniformity** (2 features): cv_x, cv_y
+- **Statistical Moments** (4 features): skew_x, skew_y, kurt_x, kurt_y
+- **PCA Orientation** (2 features): angle, eigen_ratio
+- **Edge Features** (5 features): left/right/top/bottom/total edge fractions
+- **Temporal** (2 features): second_t_value, t_var
 
 The trained model is stored as a pickle file for later inference.
 
