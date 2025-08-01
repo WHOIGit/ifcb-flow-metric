@@ -7,3 +7,5 @@ plotly
 requests
 gunicorn
 PyYAML
+pandas
+seaborn
