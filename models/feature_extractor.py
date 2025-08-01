@@ -1,19 +1,27 @@
 import numpy as np
 from joblib import Parallel, delayed
 from tqdm import tqdm
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from sklearn.decomposition import PCA
 
 from utils.constants import IFCB_ASPECT_RATIO, EDGE_TOLERANCE
 from utils.dataloader import get_points
+from utils.feature_config import get_default_feature_config, get_enabled_features
 
 
 class FeatureExtractor:
     """Compute a wide variety of features for each point cloud."""
 
-    def __init__(self, aspect_ratio: float = IFCB_ASPECT_RATIO, edge_tolerance: int = EDGE_TOLERANCE) -> None:
+    def __init__(
+        self, 
+        aspect_ratio: float = IFCB_ASPECT_RATIO, 
+        edge_tolerance: int = EDGE_TOLERANCE,
+        feature_config: Optional[Dict[str, Any]] = None
+    ) -> None:
         self.aspect_ratio = aspect_ratio
         self.edge_tolerance = edge_tolerance
+        self.feature_config = feature_config or get_default_feature_config()
+        self.enabled_features = get_enabled_features(self.feature_config)
 
     # ------------------------------------------------------------------
     # Helper feature functions
@@ -123,21 +131,80 @@ class FeatureExtractor:
             second_t_value = t[1] if len(t) > 1 else t[0]
             t_var = np.var(np.diff(t)) if len(t) > 1 else 0.0
 
-            features = np.concatenate(
-                [
-                    mean,
-                    std,
-                    median,
-                    iqr,
-                    [ratio_spread, core_fraction],
-                    dup_features,
-                    [cv_x, cv_y],
-                    [skew_x, skew_y, kurt_x, kurt_y],
-                    [angle, eigen_ratio],
-                    edge_features,
-                    [second_t_value, t_var],
-                ]
-            )
+            # Build features list based on enabled features
+            feature_list = []
+            
+            # Spatial Statistics Features
+            if self.enabled_features.get('mean_x', True):
+                feature_list.append(mean[0])
+            if self.enabled_features.get('mean_y', True):
+                feature_list.append(mean[1])
+            if self.enabled_features.get('std_x', True):
+                feature_list.append(std[0])
+            if self.enabled_features.get('std_y', True):
+                feature_list.append(std[1])
+            if self.enabled_features.get('median_x', True):
+                feature_list.append(median[0])
+            if self.enabled_features.get('median_y', True):
+                feature_list.append(median[1])
+            if self.enabled_features.get('iqr_x', True):
+                feature_list.append(iqr[0])
+            if self.enabled_features.get('iqr_y', True):
+                feature_list.append(iqr[1])
+            
+            # Distribution Shape Features
+            if self.enabled_features.get('ratio_spread', True):
+                feature_list.append(ratio_spread)
+            if self.enabled_features.get('core_fraction', True):
+                feature_list.append(core_fraction)
+            
+            # Clipping Detection Features
+            if self.enabled_features.get('duplicate_fraction', True):
+                feature_list.append(dup_features[0])
+            if self.enabled_features.get('max_duplicate_fraction', True):
+                feature_list.append(dup_features[1])
+            
+            # Histogram Uniformity Features
+            if self.enabled_features.get('cv_x', True):
+                feature_list.append(cv_x)
+            if self.enabled_features.get('cv_y', True):
+                feature_list.append(cv_y)
+            
+            # Statistical Moments Features
+            if self.enabled_features.get('skew_x', True):
+                feature_list.append(skew_x)
+            if self.enabled_features.get('skew_y', True):
+                feature_list.append(skew_y)
+            if self.enabled_features.get('kurt_x', True):
+                feature_list.append(kurt_x)
+            if self.enabled_features.get('kurt_y', True):
+                feature_list.append(kurt_y)
+            
+            # PCA Orientation Features
+            if self.enabled_features.get('angle', True):
+                feature_list.append(angle)
+            if self.enabled_features.get('eigen_ratio', True):
+                feature_list.append(eigen_ratio)
+            
+            # Edge Features
+            if self.enabled_features.get('left_edge_fraction', True):
+                feature_list.append(edge_features[0])
+            if self.enabled_features.get('right_edge_fraction', True):
+                feature_list.append(edge_features[1])
+            if self.enabled_features.get('top_edge_fraction', True):
+                feature_list.append(edge_features[2])
+            if self.enabled_features.get('bottom_edge_fraction', True):
+                feature_list.append(edge_features[3])
+            if self.enabled_features.get('total_edge_fraction', True):
+                feature_list.append(edge_features[4])
+            
+            # Temporal Features
+            if self.enabled_features.get('second_t_value', True):
+                feature_list.append(second_t_value)
+            if self.enabled_features.get('t_var', True):
+                feature_list.append(t_var)
+            
+            features = np.array(feature_list)
             return {"pid": pid, "features": features}
         except Exception:
             return {"pid": load_result.get("pid"), "features": None}
