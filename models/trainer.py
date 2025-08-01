@@ -6,10 +6,12 @@ from utils.constants import CONTAMINATION, N_JOBS, RANDOM_STATE
 class ModelTrainer:
     """Trains a model on extracted features."""
     
-    def __init__(self, filepath: str, contamination=CONTAMINATION, n_jobs=N_JOBS):
+    def __init__(self, filepath: str, contamination=CONTAMINATION, n_jobs=N_JOBS, max_samples='auto', max_features=1.0):
         self.filepath = filepath
         self.contamination = contamination
         self.n_jobs = n_jobs
+        self.max_samples = max_samples
+        self.max_features = max_features
 
     def train_classifier(self, feature_results):
         """
@@ -30,7 +32,9 @@ class ModelTrainer:
         isolation_forest = IsolationForest(
             contamination=self.contamination,
             random_state=RANDOM_STATE,
-            n_jobs=self.n_jobs
+            n_jobs=self.n_jobs,
+            max_samples=self.max_samples,
+            max_features=self.max_features
         )
         isolation_forest.fit(features)
         

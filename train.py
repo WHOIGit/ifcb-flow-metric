@@ -16,6 +16,8 @@ def main():
     parser.add_argument('--aspect-ratio', type=float, default=IFCB_ASPECT_RATIO, help='Camera frame aspect ratio (width/height)')
     parser.add_argument('--chunk-size', type=int, default=CHUNK_SIZE, help='Number of PIDs to process in each chunk')
     parser.add_argument('--model', default=MODEL, help='Model save/load path')
+    parser.add_argument('--max-samples', default='auto', help='Number of samples to draw from X to train each base estimator')
+    parser.add_argument('--max-features', type=float, default=1.0, help='Number of features to draw from X to train each base estimator')
     # Feature configuration options (mutually exclusive)
     config_group = parser.add_mutually_exclusive_group()
     config_group.add_argument('--config', help='YAML string specifying which features to use for training')
@@ -76,7 +78,13 @@ def main():
 
     # Train the classifier
     print(f'Training classifier')
-    trainer = ModelTrainer(filepath=args.model, contamination=args.contamination, n_jobs=args.n_jobs)
+    trainer = ModelTrainer(
+        filepath=args.model, 
+        contamination=args.contamination, 
+        n_jobs=args.n_jobs,
+        max_samples=args.max_samples,
+        max_features=args.max_features
+    )
     
     classifier = trainer.train_classifier(feature_results)
 
