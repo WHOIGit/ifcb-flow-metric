@@ -64,7 +64,7 @@ def main():
     
     # Extract features from point clouds
     extractor = FeatureExtractor(aspect_ratio=args.aspect_ratio, feature_config=feature_config)
-    feature_results = extractor.load_extract_parallel(
+    feature_df = extractor.load_extract_parallel(
         pids, args.data_dir,
         n_jobs=args.n_jobs,
         chunk_size=args.chunk_size
@@ -72,7 +72,7 @@ def main():
 
     elapsed = time.time() - then
 
-    print(f'Extracted features for {len(feature_results)} point clouds in {elapsed:.2f} seconds')
+    print(f'Extracted features for {len(feature_df)} point clouds in {elapsed:.2f} seconds')
 
     then = time.time()
 
@@ -86,7 +86,7 @@ def main():
         max_features=args.max_features
     )
     
-    classifier = trainer.train_classifier(feature_results)
+    classifier = trainer.train_classifier(feature_df)
 
     print(f'Trained classifier in {elapsed:.2f} seconds')
 

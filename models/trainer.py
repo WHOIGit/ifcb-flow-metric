@@ -1,5 +1,6 @@
 from sklearn.ensemble import IsolationForest
 import numpy as np
+import pandas as pd
 import pickle
 from utils.constants import CONTAMINATION, N_JOBS, RANDOM_STATE
 
@@ -13,20 +14,19 @@ class ModelTrainer:
         self.max_samples = max_samples
         self.max_features = max_features
 
-    def train_classifier(self, feature_results):
+    def train_classifier(self, feature_df: pd.DataFrame):
         """
-        Train a classifier using a list of feature results.
+        Train a classifier using a DataFrame of features.
         
         Parameters:
-        feature_results: list of feature dictionaries
-        contamination: float, expected fraction of anomalous distributions
+        feature_df: pandas DataFrame with 'pid' column and feature columns
         """
-        features = []
-        for result in feature_results:
-            if result['features'] is not None:
-                features.append(result['features'])
+        # Separate PIDs from features
+        feature_columns = [col for col in feature_df.columns if col != 'pid']
+        features = feature_df[feature_columns].values
         
-        features = np.array(features)
+        print(f"Training on {len(feature_df)} samples with {len(feature_columns)} features")
+        print(f"Feature columns: {feature_columns}")
         
         # Fit isolation forest to identify normal pattern at distribution level
         isolation_forest = IsolationForest(
@@ -37,6 +37,9 @@ class ModelTrainer:
             max_features=self.max_features
         )
         isolation_forest.fit(features)
+        
+        # Store feature names in the model for later reference
+        isolation_forest.feature_names_ = feature_columns
         
         return isolation_forest
 
