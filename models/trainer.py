@@ -1,6 +1,5 @@
 from sklearn.ensemble import IsolationForest
 import numpy as np
-import pandas as pd
 import pickle
 from utils.constants import CONTAMINATION, N_JOBS, RANDOM_STATE
 
@@ -14,19 +13,23 @@ class ModelTrainer:
         self.max_samples = max_samples
         self.max_features = max_features
 
-    def train_classifier(self, feature_df: pd.DataFrame):
+    def train_classifier(self, feature_results, feature_names):
         """
-        Train a classifier using a DataFrame of features.
+        Train a classifier using a list of feature results.
         
         Parameters:
-        feature_df: pandas DataFrame with 'pid' column and feature columns
+        feature_results: list of feature dictionaries
+        feature_names: list of feature names in the order they appear in the arrays
         """
-        # Separate PIDs from features
-        feature_columns = [col for col in feature_df.columns if col != 'pid']
-        features = feature_df[feature_columns].values
+        features = []
+        for result in feature_results:
+            if result['features'] is not None:
+                features.append(result['features'])
         
-        print(f"Training on {len(feature_df)} samples with {len(feature_columns)} features")
-        print(f"Feature columns: {feature_columns}")
+        features = np.array(features)
+        
+        print(f"Training on {len(features)} samples with {len(feature_names)} features")
+        print(f"Feature names: {feature_names}")
         
         # Fit isolation forest to identify normal pattern at distribution level
         isolation_forest = IsolationForest(
@@ -39,7 +42,7 @@ class ModelTrainer:
         isolation_forest.fit(features)
         
         # Store feature names in the model for later reference
-        isolation_forest.feature_names_ = feature_columns
+        isolation_forest.feature_names_ = feature_names
         
         return isolation_forest
 
