@@ -52,8 +52,7 @@ def get_default_feature_config() -> Dict[str, Any]:
             'total_edge_fraction': True,
         },
         'temporal': {
-            'second_t_value': True,
-            't_var': True,
+            't_y_var': True,
         }
     }
 

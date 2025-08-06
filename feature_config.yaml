@@ -50,5 +50,4 @@ edge_features:
 
 # Temporal Features
 temporal:
-  second_t_value: true  # Second timestamp value (or first if only one exists)
-  t_var: true          # Variance of timestamp differences (temporal variability)
+  t_y_var: true         # Variance of rolling mean of y-coordinates (temporal variability)
