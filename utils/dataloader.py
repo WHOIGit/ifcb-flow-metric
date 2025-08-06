@@ -16,14 +16,17 @@ def get_points(pid, directory='.'):
         ).T.astype(np.float64)
 
         if pid.startswith('I'):
-            # invert y-axis for old-style instruments
-            points[:, 1] = -points[:, 1]
+            t_col = cols.PROCESSING_END_TIME
+        else:
+            t_col = cols.ADC_TIME
+
+        t = adc[t_col]
     
-        return { 'pid': pid, 'points': points }
+        return { 'pid': pid, 'points': points, 't': t }
     
     except Exception as e:
 
-        return { 'pid': pid, 'points': None }
+        return { 'pid': pid, 'points': None, 't': None, 'error': str(e) }
 
 
 def get_points_parallel(pids, directory='.', n_jobs=-1):

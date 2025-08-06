@@ -1,0 +1,54 @@
+# IFCB Flow Metric Feature Configuration
+# Enable or disable specific features for training
+# Set to true to include the feature, false to exclude it
+
+# Spatial Statistics Features
+spatial_stats:
+  mean_x: true          # Mean x-coordinate
+  mean_y: true          # Mean y-coordinate
+  std_x: true           # Standard deviation of x-coordinates
+  std_y: true           # Standard deviation of y-coordinates
+  median_x: true        # Median x-coordinate
+  median_y: true        # Median y-coordinate
+  iqr_x: true           # Interquartile range of x-coordinates
+  iqr_y: true           # Interquartile range of y-coordinates
+
+# Distribution Shape Features
+distribution_shape:
+  ratio_spread: true    # Ratio of y-direction IQR to x-direction IQR (elongation)
+  core_fraction: true   # Fraction of points within IQR box (concentration)
+
+# Clipping Detection Features
+clipping_detection:
+  duplicate_fraction: true      # Fraction of points sharing same y-value
+  max_duplicate_fraction: true  # Largest fraction of points with identical y-values
+
+# Histogram Uniformity Features
+histogram_uniformity:
+  cv_x: true           # Coefficient of variation for x-coordinate histogram
+  cv_y: true           # Coefficient of variation for y-coordinate histogram
+
+# Statistical Moments Features
+statistical_moments:
+  skew_x: true         # Skewness of x-coordinate distribution (asymmetry)
+  skew_y: true         # Skewness of y-coordinate distribution (asymmetry)
+  kurt_x: true         # Kurtosis of x-coordinate distribution (tail heaviness)
+  kurt_y: true         # Kurtosis of y-coordinate distribution (tail heaviness)
+
+# PCA Orientation Features
+pca_orientation:
+  angle: true          # Principal component angle (orientation)
+  eigen_ratio: true    # Ratio of first to second eigenvalue (elongation via PCA)
+
+# Edge Features
+edge_features:
+  left_edge_fraction: true    # Fraction of points near left frame edge
+  right_edge_fraction: true   # Fraction of points near right frame edge
+  top_edge_fraction: true     # Fraction of points near top frame edge
+  bottom_edge_fraction: true  # Fraction of points near bottom frame edge
+  total_edge_fraction: true   # Total fraction of points near any frame edge
+
+# Temporal Features
+temporal:
+  second_t_value: true  # Second timestamp value (or first if only one exists)
+  t_var: true          # Variance of timestamp differences (temporal variability)

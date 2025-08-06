@@ -6,18 +6,20 @@ from utils.constants import CONTAMINATION, N_JOBS, RANDOM_STATE
 class ModelTrainer:
     """Trains a model on extracted features."""
     
-    def __init__(self, filepath: str, contamination=CONTAMINATION, n_jobs=N_JOBS):
+    def __init__(self, filepath: str, contamination=CONTAMINATION, n_jobs=N_JOBS, max_samples='auto', max_features=1.0):
         self.filepath = filepath
         self.contamination = contamination
         self.n_jobs = n_jobs
+        self.max_samples = max_samples
+        self.max_features = max_features
 
-    def train_classifier(self, feature_results):
+    def train_classifier(self, feature_results, feature_names):
         """
         Train a classifier using a list of feature results.
         
         Parameters:
         feature_results: list of feature dictionaries
-        contamination: float, expected fraction of anomalous distributions
+        feature_names: list of feature names in the order they appear in the arrays
         """
         features = []
         for result in feature_results:
@@ -26,13 +28,21 @@ class ModelTrainer:
         
         features = np.array(features)
         
+        print(f"Training on {len(features)} samples with {len(feature_names)} features")
+        print(f"Feature names: {feature_names}")
+        
         # Fit isolation forest to identify normal pattern at distribution level
         isolation_forest = IsolationForest(
             contamination=self.contamination,
             random_state=RANDOM_STATE,
-            n_jobs=self.n_jobs
+            n_jobs=self.n_jobs,
+            max_samples=self.max_samples,
+            max_features=self.max_features
         )
         isolation_forest.fit(features)
+        
+        # Store feature names in the model for later reference
+        isolation_forest.feature_names_ = feature_names
         
         return isolation_forest
 
