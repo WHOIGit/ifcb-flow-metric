@@ -1,5 +1,6 @@
 import numpy as np
 from joblib import Parallel, delayed
+import pandas as pd
 from tqdm import tqdm
 from typing import Any, Dict, List, Optional
 from sklearn.decomposition import PCA
@@ -32,7 +33,7 @@ class FeatureExtractor:
             'skew_x', 'skew_y', 'kurt_x', 'kurt_y',
             'angle', 'eigen_ratio',
             'left_edge_fraction', 'right_edge_fraction', 'top_edge_fraction', 'bottom_edge_fraction', 'total_edge_fraction',
-            'second_t_value', 't_var'
+            't_y_var'
         ]
     
     def get_enabled_feature_names(self) -> List[str]:
@@ -144,8 +145,8 @@ class FeatureExtractor:
             edge_features = self._edge_features(original_points)
 
             # time features
-            second_t_value = t[1] if len(t) > 1 else t[0]
-            t_var = np.var(np.diff(t)) if len(t) > 1 else 0.0
+            y_rolling_mean = pd.Series(points[:, 1]).rolling(window=10).mean()
+            t_y_var = y_rolling_mean.var() if not y_rolling_mean.empty else 0.0
 
             # Build features list based on enabled features in correct order
             feature_list = []
@@ -215,11 +216,9 @@ class FeatureExtractor:
                 feature_list.append(edge_features[4])
             
             # Temporal Features
-            if self.enabled_features.get('second_t_value', True):
-                feature_list.append(second_t_value)
-            if self.enabled_features.get('t_var', True):
-                feature_list.append(t_var)
-            
+            if self.enabled_features.get('t_y_var', True):
+                feature_list.append(t_y_var)
+
             features = np.array(feature_list)
             return {"pid": pid, "features": features}
         except Exception:
