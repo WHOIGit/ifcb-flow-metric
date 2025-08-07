@@ -49,7 +49,7 @@ python train.py /path/to/data --n-jobs 4 --contamination 0.00001
 
 ### Feature Selection
 
-By default, all 27 available features are used for training. You can customize which features to include using either:
+By default, all 26 available features are used for training. You can customize which features to include using either:
 
 1. **YAML configuration file:**
    ```bash
@@ -70,7 +70,7 @@ The repository includes `feature_config.yaml` as an example configuration file w
 - **Statistical Moments** (4 features): skew_x, skew_y, kurt_x, kurt_y
 - **PCA Orientation** (2 features): angle, eigen_ratio
 - **Edge Features** (5 features): left/right/top/bottom/total edge fractions
-- **Temporal** (2 features): second_t_value, t_var
+- **Temporal** (1 feature): t_y_var
 
 The trained model is stored as a pickle file for later inference.
 
