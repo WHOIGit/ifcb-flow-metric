@@ -2,10 +2,10 @@
 import argparse
 import time
 from ifcb import DataDirectory
-from models.feature_extractor import FeatureExtractor
-from models.trainer import ModelTrainer
-from utils.constants import IFCB_ASPECT_RATIO, CONTAMINATION, CHUNK_SIZE, N_JOBS, MODEL
-from utils.feature_config import load_feature_config
+from ifcb_flow_metric.models.feature_extractor import FeatureExtractor
+from ifcb_flow_metric.models.trainer import ModelTrainer
+from ifcb_flow_metric.utils.constants import IFCB_ASPECT_RATIO, CONTAMINATION, CHUNK_SIZE, N_JOBS, MODEL
+from ifcb_flow_metric.utils.feature_config import load_feature_config
 
 def main():
     parser = argparse.ArgumentParser(description='Train anomaly detection model')

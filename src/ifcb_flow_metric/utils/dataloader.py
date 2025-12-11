@@ -1,6 +1,6 @@
 from ifcb import DataDirectory
 import numpy as np
-from utils.utilities import parallel_map
+from ifcb_flow_metric.utils.utilities import parallel_map
 from tqdm import tqdm
 
 def get_points(pid, directory='.'):

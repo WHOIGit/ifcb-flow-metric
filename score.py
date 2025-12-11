@@ -3,11 +3,11 @@ import argparse
 import csv
 import time
 from ifcb import DataDirectory
-from models.feature_extractor import FeatureExtractor
-from models.trainer import ModelTrainer
-from models.inference import Inferencer
-from utils.constants import IFCB_ASPECT_RATIO, CHUNK_SIZE, N_JOBS, MODEL, SCORES_OUTPUT
-from utils.feature_config import load_feature_config
+from ifcb_flow_metric.models.feature_extractor import FeatureExtractor
+from ifcb_flow_metric.models.trainer import ModelTrainer
+from ifcb_flow_metric.models.inference import Inferencer
+from ifcb_flow_metric.utils.constants import IFCB_ASPECT_RATIO, CHUNK_SIZE, N_JOBS, MODEL, SCORES_OUTPUT
+from ifcb_flow_metric.utils.feature_config import load_feature_config
 
 def main():
     parser = argparse.ArgumentParser(description='Score anomalies in point cloud data')

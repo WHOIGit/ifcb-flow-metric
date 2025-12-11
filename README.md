@@ -17,10 +17,13 @@ IFCB Flow Metric is an anomaly detection toolkit for Imaging FlowCytobot (IFCB) 
    git clone https://github.com/WHOIGit/ifcb-flow-metric.git
    cd ifcb-flow-metric
    ```
-2. Install Python dependencies (Python >=3.11 recommended)
+
+2. Install the package (Python >=3.11 recommended)
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
+
+   This will install the package in editable mode along with all dependencies. You can then use the scripts from the repository root or import the package in your own Python code.
 
 ## Training a Model
 
@@ -114,17 +117,38 @@ docker run -p 8050:8050 -v /path/to/scores.csv:/app/scores.csv ifcb-flow-metric
 
 This exposes the dashboard on port 8050.
 
+## Using as a Library
+
+After installation, you can import and use the package in your own Python code:
+
+```python
+from ifcb_flow_metric import FeatureExtractor, ModelTrainer, Inferencer
+
+# Extract features from point cloud data
+extractor = FeatureExtractor(aspect_ratio=1.36)
+features = extractor.load_extract_parallel(pids, data_dir)
+
+# Train a model
+trainer = ModelTrainer(filepath='model.pkl')
+classifier = trainer.train_classifier(features)
+
+# Score new data
+inferencer = Inferencer(model_path='model.pkl')
+scores = inferencer.score(new_features)
+```
+
 ## Repository Overview
 
 | Path         | Description                                    |
 |--------------|------------------------------------------------|
-| `models/`    | Feature extraction, training, and inference utilities |
-| `utils/`     | Helper functions and constants                 |
+| `src/ifcb_flow_metric/models/` | Feature extraction, training, and inference utilities |
+| `src/ifcb_flow_metric/utils/`  | Helper functions and constants                 |
+| `src/ifcb_flow_metric/config/` | Configuration files (e.g., feature_config.yaml) |
 | `train.py`   | Command line training script                   |
 | `score.py`   | Command line scoring script                    |
 | `dashboard.py` | Dash dashboard for interactive exploration   |
 
-Default configuration values such as contamination rate and output paths are defined in `utils/constants.py`.
+Default configuration values such as contamination rate and output paths are defined in `src/ifcb_flow_metric/utils/constants.py`.
 
 ## License
 
