@@ -56,7 +56,7 @@ By default, all 26 available features are used for training. You can customize w
 
 1. **YAML configuration file:**
    ```bash
-   python train.py /path/to/data --config-file feature_config.yaml
+   python train.py /path/to/data --config-file /path/to/feature_config.yaml
    ```
 
 2. **YAML string directly:**
@@ -64,7 +64,7 @@ By default, all 26 available features are used for training. You can customize w
    python train.py /path/to/data --config 'spatial_stats: {mean_x: true, mean_y: true}'
    ```
 
-The repository includes `feature_config.yaml` as an example configuration file with all features enabled. Features are organized into categories:
+The repository includes `src/ifcb_flow_metric/config/feature_config.yaml` as an example configuration file with all features enabled. Features are organized into categories:
 
 - **Spatial Statistics** (8 features): mean, std, median, IQR for x/y coordinates
 - **Distribution Shape** (2 features): ratio_spread, core_fraction
@@ -143,7 +143,7 @@ scores = inferencer.score(new_features)
 |--------------|------------------------------------------------|
 | `src/ifcb_flow_metric/models/` | Feature extraction, training, and inference utilities |
 | `src/ifcb_flow_metric/utils/`  | Helper functions and constants                 |
-| `src/ifcb_flow_metric/config/` | Configuration files (e.g., feature_config.yaml) |
+| `src/ifcb_flow_metric/config/` | Configuration files (e.g., src/ifcb_flow_metric/config/feature_config.yaml) |
 | `train.py`   | Command line training script                   |
 | `score.py`   | Command line scoring script                    |
 | `dashboard.py` | Dash dashboard for interactive exploration   |
