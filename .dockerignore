@@ -1,0 +1,40 @@
+# Git
+.git
+.github
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv/
+ENV/
+env/
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov/
+.tox/
+
+# Build artifacts
+*.egg-info
+dist/
+build/
+
+# Documentation
+docs/
+
+# Other
+*.md
+!README.md

@@ -4,12 +4,14 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+RUN pip install --no-cache-dir uv
 
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . .
+# Copy package files
+COPY pyproject.toml README.md ./
+COPY src/ src/
+COPY train.py score.py create_violin_plot.py ./
 
 # Install the package
 RUN uv pip install --system --no-cache .
