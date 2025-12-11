@@ -1,15 +1,18 @@
 # Use an official Python runtime as a parent image
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
 
 # Copy the current directory contents into the container at /app
-COPY . /app
+COPY . .
 
-# Install Python dependencies
-RUN pip install -r requirements.txt
+# Install the package
+RUN uv pip install --system --no-cache .
 
 # Default command runs train.py
 CMD ["python", "train.py"]
