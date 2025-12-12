@@ -1,7 +1,7 @@
 from sklearn.ensemble import IsolationForest
 import numpy as np
 import pickle
-from utils.constants import CONTAMINATION, N_JOBS, RANDOM_STATE
+from ifcb_flow_metric.utils.constants import CONTAMINATION, N_JOBS, RANDOM_STATE
 
 class ModelTrainer:
     """Trains a model on extracted features."""

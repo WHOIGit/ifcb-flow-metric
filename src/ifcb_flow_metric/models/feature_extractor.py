@@ -5,9 +5,9 @@ from tqdm import tqdm
 from typing import Any, Dict, List, Optional
 from sklearn.decomposition import PCA
 
-from utils.constants import IFCB_ASPECT_RATIO, EDGE_TOLERANCE
-from utils.dataloader import get_points
-from utils.feature_config import get_default_feature_config, get_enabled_features
+from ifcb_flow_metric.utils.constants import IFCB_ASPECT_RATIO, EDGE_TOLERANCE
+from ifcb_flow_metric.utils.dataloader import get_points
+from ifcb_flow_metric.utils.feature_config import get_default_feature_config, get_enabled_features
 
 
 class FeatureExtractor:
