@@ -1,10 +1,15 @@
 """
-Tests for point cloud loading, error surfacing, and the single-pass
-directory listing, using synthetic ADC files (no real IFCB data required).
+Tests for point cloud loading, error surfacing, and directory discovery
+(full-tree walk vs pruned per-PID search), using synthetic ADC files
+(no real IFCB data required).
 """
+
+import os
 
 import numpy as np
 import pytest
+
+from ifcbkit import parse_pid
 
 from ifcb_flow_metric.models.feature_extractor import FeatureExtractor
 from ifcb_flow_metric.models.inference import Inferencer
@@ -137,10 +142,18 @@ def test_inferencer_all_pids_failed(tmp_path):
 
 
 def _make_fileset(root, pid, n_lines=1):
-    day = root / 'data' / '2013' / 'D201305' / 'D20130526'
+    # standard IFCB layout: D-style nests data/{year}/{Dyyyymm}/{Dyyyymmdd},
+    # I-style nests data/{year}/{IFCBn_yyyy_ddd}
+    parsed = parse_pid(pid)
+    day_dir = parsed['day_dir']
+    if day_dir.startswith('D'):
+        parts = [str(parsed['year']), day_dir[:-2], day_dir]
+    else:
+        parts = [str(parsed['year']), day_dir]
+    day = root.joinpath(*(['data'] + parts))
     day.mkdir(parents=True, exist_ok=True)
     (day / (pid + '.hdr')).write_text('ifcb5:\n  instrumentName: IFCB13\n')
-    (day / (pid + '.adc')).write_text(v2_line(1, 2, 3, 4) * 0 + '\n'.join(
+    (day / (pid + '.adc')).write_text('\n'.join(
         [v2_line(i, i, 5, 5) for i in range(1, n_lines + 1)]) + '\n')
 
 
@@ -165,6 +178,31 @@ def test_get_pid_pairs_all_and_filtered(tmp_path):
     assert [pid for pid, _ in pairs] == [V2_PID, unknown]
     assert pairs[0][1].endswith(V2_PID + '.adc')
     assert pairs[1][1] is None
+
+
+def test_get_pid_pairs_id_file_skips_full_tree_walk(tmp_path, monkeypatch):
+    # two days in one year; the ID file only covers the second day.
+    # the pruned search must list only the directories leading to that
+    # day, never the sibling day directory.
+    other_day_pid = 'D20130527T100000_IFCB013'
+    _make_fileset(tmp_path, V2_PID)              # day dir D20130526
+    _make_fileset(tmp_path, other_day_pid)      # day dir D20130527
+
+    id_file = tmp_path / 'ids.txt'
+    id_file.write_text(other_day_pid + '\n')
+
+    calls = []
+    real_listdir = os.listdir
+    def counting_listdir(path):
+        calls.append(path)
+        return real_listdir(path)
+    monkeypatch.setattr('os.listdir', counting_listdir)
+
+    pairs = get_pid_pairs(str(tmp_path), str(id_file))
+    assert pairs[0][1].endswith(other_day_pid + '.adc')
+    assert not any(c.endswith('D20130526') for c in calls), (
+        f'sibling day dir was listed: {calls}')
+    assert len(calls) <= 5  # root, data/, 2013/, D201305/, the one day dir
 
 
 def test_summarize_failures(capsys):

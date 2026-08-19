@@ -4,17 +4,30 @@ Point cloud loading for IFCB raw data.
 ``get_points`` takes a bin PID and the path of its ``.adc`` file and returns
 the (x, y) point cloud of detected ROIs in that bin.
 
-Directory discovery is a single pass: ``list_adc_paths`` walks the data tree
-once (via ifcbkit) into a pid -> ADC path mapping, and ``get_pid_pairs``
-combines that with an optional ID file. ``FeatureExtractor.load_extract_parallel``
-consumes the resulting (pid, adc_path) pairs directly, so there is no
-per-bin recursive directory search.
+Directory discovery has two modes:
+
+* No ID file: ``list_adc_paths`` walks the data tree once (via ifcbkit)
+  into a pid -> ADC path mapping.
+* ID file given: ``get_pid_pairs`` skips the full walk and resolves each
+  listed PID with ifcbkit's pruned ``sync_find_fileset``, which descends
+  only along that PID's own path. The work per PID is proportional to the
+  depth of its path (a handful of small directories), not the size of the
+  tree.
+
+``FeatureExtractor.load_extract_parallel`` consumes the resulting
+(pid, adc_path) pairs directly.
 """
 
 import numpy as np
 from collections import Counter
 
-from ifcbkit import iter_adc_targets, SyncIfcbDataDirectory
+from ifcbkit import (
+    iter_adc_targets,
+    SyncIfcbDataDirectory,
+    sync_find_fileset,
+    DEFAULT_INCLUDE,
+    DEFAULT_EXCLUDE,
+)
 
 from ifcb_flow_metric.utils.utilities import parallel_map
 
@@ -35,18 +48,44 @@ def get_pid_pairs(data_dir, id_file=None):
     """
     Return a list of ``(pid, adc_path)`` pairs to load.
 
-    The data tree is walked once, via :func:`list_adc_paths`. If
-    ``id_file`` is given, the result is restricted to the PIDs listed
-    in it (one per line); a PID that does not resolve to a file in the
-    tree gets ``None`` as its path and is surfaced as an error by
-    :func:`get_points`.
+    Without an ``id_file`` the data tree is walked once, via
+    :func:`list_adc_paths`.
+
+    With an ``id_file`` the full walk is skipped: each listed PID is
+    resolved individually by :func:`_find_adc_path`, which calls ifcbkit's
+    pruned ``sync_find_fileset`` (descends only into directories whose
+    name is a substring of the PID or a known data-dir name). A PID that
+    does not resolve to a file gets ``None`` as its path and is surfaced
+    as an error by :func:`get_points` (and :func:`summarize_failures`).
     """
-    adc_paths = list_adc_paths(data_dir)
     if id_file is None:
-        return list(adc_paths.items())
+        return list(list_adc_paths(data_dir).items())
     with open(id_file) as f:
         pids = [line.strip() for line in f if line.strip()]
-    return [(pid, adc_paths.get(pid)) for pid in pids]
+    return [(pid, _find_adc_path(data_dir, pid)) for pid in pids]
+
+
+def _find_adc_path(data_dir, pid):
+    """
+    Find the path of ``<pid>.adc`` without walking the full tree.
+
+    Delegates to ifcbkit's ``sync_find_fileset``: a pruned search that
+    descends only into directories whose name is a substring of the pid
+    (or a known data-dir name), so it touches only the directories on
+    the path to the pid. ``require_adc=True`` makes it return a basepath
+    only when the ``.adc`` is present; ``require_roi=False`` since point
+    clouds are built from the ADC alone.
+
+    :returns: the ``.adc`` path, or ``None`` if the pid is not in the tree
+    """
+    base = sync_find_fileset(
+        data_dir, pid,
+        include=DEFAULT_INCLUDE,
+        exclude=DEFAULT_EXCLUDE,
+        require_adc=True,
+        require_roi=False,
+    )
+    return base + '.adc' if base is not None else None
 
 
 def get_points(pid, adc_path):

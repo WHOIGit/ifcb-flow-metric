@@ -35,7 +35,7 @@ python train.py <data_dir> [options]
 
 Options:
 
-- `--id-file` – path to a file with one PID per line. If omitted, all bins in `data_dir` are used.
+- `--id-file` – path to a file with one PID per line. If omitted, all bins in `data_dir` are used. When provided, PIDs are resolved directly by directory name (a pruned per-PID search) rather than by walking the whole tree, so this is much faster for a subset of a large dataset; PIDs not found in the tree are reported as errors.
 - `--n-jobs` – number of parallel workers for feature extraction (default from `utils/constants.py`).
 - `--contamination` – expected fraction of anomalies.
 - `--aspect-ratio` – camera frame aspect ratio.
