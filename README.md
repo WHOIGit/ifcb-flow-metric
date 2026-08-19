@@ -94,7 +94,7 @@ Important options:
 - `--model` – path to the saved model.
 - `--output` – CSV file to write results (default `scores.csv`).
 
-Each row in the CSV contains a PID and its anomaly score.
+Each row in the CSV contains a PID, its anomaly score, and an error column (empty on success; for PIDs that failed to produce features, the score is `nan` and the column carries the reason, e.g. a missing file or too few points in the distribution).
 
 ## Running the Dashboard
 

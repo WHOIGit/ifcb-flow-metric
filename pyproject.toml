@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ifcb-flow-metric"
-version = "1.0.2"
+version = "1.1.0"
 description = "Anomaly detection toolkit for Imaging FlowCytobot (IFCB) data"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,7 +14,7 @@ dependencies = [
     "scikit-learn",
     "tqdm",
     "matplotlib",
-    "pyifcb @ git+https://github.com/joefutrelle/pyifcb@v1.2.1",
+    "ifcbkit @ git+https://github.com/WHOIGit/ifcbkit@v0.3.1",
     "dash",
     "plotly",
     "requests",
@@ -25,6 +25,9 @@ dependencies = [
     "joblib",
     "numpy",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest"]
 
 [project.urls]
 Repository = "https://github.com/WHOIGit/ifcb-flow-metric"

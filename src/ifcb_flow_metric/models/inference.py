@@ -24,14 +24,18 @@ class Inferencer:
                 bad_pids.append(result['pid'])
         
         features = np.array(features)
-        
-        # Get anomaly scores from isolation forest
-        anomaly_scores = [{
-            'pid': pid,
-            'anomaly_score': score
-        } for pid, score in zip(pids, self.model.score_samples(features))]
+
+        # Get anomaly scores from isolation forest. If no PID produced
+        # features there is nothing to score (features would be a 1-D empty
+        # array) and the NaN rows for the failed PIDs are the whole result.
+        anomaly_scores = []
+        if len(features) > 0:
+            anomaly_scores = [
+                {'pid': pid, 'anomaly_score': score}
+                for pid, score in zip(pids, self.model.score_samples(features))
+            ]
 
         anomaly_scores.extend([{'pid': pid, 'anomaly_score': np.nan} for pid in bad_pids])
-        
+
         return anomaly_scores
 

@@ -13,7 +13,13 @@ from ifcb_flow_metric.utils.constants import (
 )
 
 # Import key utility functions
-from ifcb_flow_metric.utils.dataloader import get_points, get_points_parallel
+from ifcb_flow_metric.utils.dataloader import (
+    get_points,
+    get_points_parallel,
+    get_pid_pairs,
+    list_adc_paths,
+    summarize_failures,
+)
 from ifcb_flow_metric.utils.feature_config import (
     load_feature_config,
     get_default_feature_config,
@@ -35,6 +41,9 @@ __all__ = [
     # Functions
     "get_points",
     "get_points_parallel",
+    "get_pid_pairs",
+    "list_adc_paths",
+    "summarize_failures",
     "load_feature_config",
     "get_default_feature_config",
     "get_enabled_features",
