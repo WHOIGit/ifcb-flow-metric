@@ -130,6 +130,59 @@ def test_extract_features_success_has_no_error():
         FeatureExtractor().get_enabled_feature_names())
 
 
+def test_get_points_returns_n_total(tmp_path):
+    # 2 ROI-bearing triggers + 2 no-ROI (zero-area) triggers = 4 lines
+    path = write_adc(tmp_path, V2_PID, [
+        v2_line(100, 200, 50, 30),
+        v2_line(0, 0, 0, 0),
+        v2_line(150, 250, 60, 40),
+        v2_line(0, 0, 0, 0),
+    ])
+    result = get_points(V2_PID, path)
+    assert result['error'] is None
+    assert result['n_total'] == 4
+    assert len(result['points']) == 2
+
+
+def test_get_points_n_total_zero_on_failure():
+    result = get_points(V2_PID, None)
+    assert result['n_total'] == 0
+
+
+def test_extract_features_roi_trigger_fraction():
+    rng = np.random.default_rng(0)
+    points = rng.integers(0, 1000, size=(40, 2)).astype(float)
+    result = FeatureExtractor().extract_features(
+        {'pid': V2_PID, 'points': points, 'n_total': 100, 'error': None})
+    names = FeatureExtractor().get_enabled_feature_names()
+    assert result['error'] is None
+    assert result['features'][names.index('roi_trigger_fraction')] == pytest.approx(0.4)
+
+
+def test_extract_features_roi_trigger_fraction_disabled():
+    config = {
+        'trigger_stats': {'roi_trigger_fraction': False},
+        'spatial_stats': {
+            'mean_x': True, 'mean_y': True, 'std_x': True, 'std_y': True,
+            'median_x': True, 'median_y': True, 'iqr_x': True, 'iqr_y': True,
+        },
+    }
+    extractor = FeatureExtractor(feature_config=config)
+    assert 'roi_trigger_fraction' not in extractor.get_enabled_feature_names()
+    points = np.random.default_rng(1).integers(0, 1000, size=(35, 2)).astype(float)
+    result = extractor.extract_features(
+        {'pid': V2_PID, 'points': points, 'n_total': 50, 'error': None})
+    assert result['error'] is None
+    assert len(result['features']) == len(extractor.get_enabled_feature_names())
+
+
+def test_default_config_includes_roi_trigger_fraction():
+    from ifcb_flow_metric.utils.feature_config import get_default_feature_config
+    enabled = FeatureExtractor().enabled_features
+    assert enabled['roi_trigger_fraction'] is True
+    assert 'roi_trigger_fraction' in get_default_feature_config()['trigger_stats']
+
+
 def test_inferencer_all_pids_failed(tmp_path):
     # scoring a batch in which every PID failed must not crash; it must
     # return NaN rows only (this used to raise a 1-D-array ValueError)

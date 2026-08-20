@@ -33,7 +33,8 @@ class FeatureExtractor:
             'skew_x', 'skew_y', 'kurt_x', 'kurt_y',
             'angle', 'eigen_ratio',
             'left_edge_fraction', 'right_edge_fraction', 'top_edge_fraction', 'bottom_edge_fraction', 'total_edge_fraction',
-            't_y_var'
+            't_y_var',
+            'roi_trigger_fraction'
         ]
     
     def get_enabled_feature_names(self) -> List[str]:
@@ -94,7 +95,7 @@ class FeatureExtractor:
         Compute the configured feature vector for one loaded point cloud.
 
         :param load_result: dict from ``get_points`` with keys 'pid',
-            'points', and 'error'
+            'points', 'n_total', and 'error'
         :returns: dict with 'pid', 'features' (1-D float64 ndarray in
             :meth:`get_enabled_feature_names` order, or ``None`` if
             extraction failed) and 'error' (human-readable reason when
@@ -167,6 +168,13 @@ class FeatureExtractor:
             y_rolling_mean = pd.Series(points[:, 1]).rolling(window=10).mean()
             t_y_var = y_rolling_mean.var() if not y_rolling_mean.empty else 0.0
 
+            # Trigger detection: fraction of trigger events that yielded a
+            # detected (nonzero-area) ROI. Bounded in [0, 1]; carries the
+            # same information as a with:without-ROI ratio but without a
+            # division-by-zero at 100% detection.
+            n_total = load_result.get('n_total') or 0
+            roi_trigger_fraction = (len(original_points) / n_total) if n_total > 0 else 0.0
+
             # Build features list based on enabled features in correct order
             feature_list = []
             
@@ -237,6 +245,10 @@ class FeatureExtractor:
             # Temporal Features
             if self.enabled_features.get('t_y_var', True):
                 feature_list.append(t_y_var)
+
+            # Trigger Detection Features
+            if self.enabled_features.get('roi_trigger_fraction', True):
+                feature_list.append(roi_trigger_fraction)
 
             features = np.array(feature_list)
             return {'pid': pid, 'features': features, 'error': None}

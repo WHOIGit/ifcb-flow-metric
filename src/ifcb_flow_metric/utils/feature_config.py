@@ -53,6 +53,9 @@ def get_default_feature_config() -> Dict[str, Any]:
         },
         'temporal': {
             't_y_var': True,
+        },
+        'trigger_stats': {
+            'roi_trigger_fraction': True,
         }
     }
 

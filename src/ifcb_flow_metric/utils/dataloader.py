@@ -102,8 +102,10 @@ def get_points(pid, adc_path):
         (e.g. for an ID-file PID absent from the tree), in which case a
         descriptive error is returned.
     :returns: dict with ``'pid'``, ``'points'`` (an (N, 2) float64 ndarray,
-        or ``None`` if loading failed) and ``'error'`` (a reason string
-        when points is ``None``, else ``None``)
+        or ``None`` if loading failed), ``'n_total'`` (the number of
+        trigger lines in the ADC file, i.e. all triggers including those
+        with no detected ROI; 0 when loading failed) and ``'error'`` (a
+        reason string when points is ``None``, else ``None``)
     """
     try:
         if adc_path is None:
@@ -114,9 +116,13 @@ def get_points(pid, adc_path):
             [(record['x'], record['y']) for record in iter_adc_targets(pid, adc_bytes)],
             dtype=np.float64,
         ).reshape(-1, 2)
-        return {'pid': pid, 'points': points, 'error': None}
+        # One ADC line per trigger event; blank lines are not triggers.
+        # The nonzero-area subset above is the "with ROI" count, so the
+        # with/without-ROI split is recoverable by the feature extractor.
+        n_total = sum(1 for line in adc_bytes.splitlines() if line.strip())
+        return {'pid': pid, 'points': points, 'n_total': n_total, 'error': None}
     except Exception as e:
-        return {'pid': pid, 'points': None, 'error': str(e)}
+        return {'pid': pid, 'points': None, 'n_total': 0, 'error': str(e)}
 
 
 def get_points_parallel(pairs, n_jobs=-1):

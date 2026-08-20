@@ -48,7 +48,8 @@ def main():
             'statistical_moments': ['skew_x', 'skew_y', 'kurt_x', 'kurt_y'],
             'pca_orientation': ['angle', 'eigen_ratio'],
             'edge_features': ['left_edge_fraction', 'right_edge_fraction', 'top_edge_fraction', 'bottom_edge_fraction', 'total_edge_fraction'],
-            'temporal': ['t_y_var']
+            'temporal': ['t_y_var'],
+            'trigger_stats': ['roi_trigger_fraction']
         }
 
         # Build feature config based on what was used in training
