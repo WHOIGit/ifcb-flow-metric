@@ -2,7 +2,7 @@ import numpy as np
 from joblib import Parallel, delayed
 import pandas as pd
 from tqdm import tqdm
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from sklearn.decomposition import PCA
 
 from ifcb_flow_metric.utils.constants import IFCB_ASPECT_RATIO, EDGE_TOLERANCE
@@ -33,7 +33,8 @@ class FeatureExtractor:
             'skew_x', 'skew_y', 'kurt_x', 'kurt_y',
             'angle', 'eigen_ratio',
             'left_edge_fraction', 'right_edge_fraction', 'top_edge_fraction', 'bottom_edge_fraction', 'total_edge_fraction',
-            't_y_var'
+            't_y_var',
+            'roi_trigger_fraction'
         ]
     
     def get_enabled_feature_names(self) -> List[str]:
@@ -90,13 +91,32 @@ class FeatureExtractor:
     # Main feature extraction
     # ------------------------------------------------------------------
     def extract_features(self, load_result: Dict[str, Any]) -> Dict[str, Any]:
-        try:
-            pid = load_result["pid"]
-            points = load_result["points"]
-            t = load_result["t"]
-            if points is None or len(points) < 30:
-                raise ValueError("Distribution has too few points")
+        """
+        Compute the configured feature vector for one loaded point cloud.
 
+        :param load_result: dict from ``get_points`` with keys 'pid',
+            'points', 'n_total', and 'error'
+        :returns: dict with 'pid', 'features' (1-D float64 ndarray in
+            :meth:`get_enabled_feature_names` order, or ``None`` if
+            extraction failed) and 'error' (human-readable reason when
+            features is ``None``, else ``None``)
+        """
+        pid = load_result.get('pid')
+        points = load_result['points']
+        if points is None:
+            # the loader already recorded why it failed
+            return {
+                'pid': pid,
+                'features': None,
+                'error': load_result.get('error') or 'point cloud not loaded',
+            }
+        if len(points) < 30:
+            return {
+                'pid': pid,
+                'features': None,
+                'error': f'distribution has too few points ({len(points)})',
+            }
+        try:
             # keep a copy for detecting clipped values in the original space
             original_points = points
             # normalise width so x/y roughly comparable
@@ -147,6 +167,13 @@ class FeatureExtractor:
             # time features
             y_rolling_mean = pd.Series(points[:, 1]).rolling(window=10).mean()
             t_y_var = y_rolling_mean.var() if not y_rolling_mean.empty else 0.0
+
+            # Trigger detection: fraction of trigger events that yielded a
+            # detected (nonzero-area) ROI. Bounded in [0, 1]; carries the
+            # same information as a with:without-ROI ratio but without a
+            # division-by-zero at 100% detection.
+            n_total = load_result.get('n_total') or 0
+            roi_trigger_fraction = (len(original_points) / n_total) if n_total > 0 else 0.0
 
             # Build features list based on enabled features in correct order
             feature_list = []
@@ -219,32 +246,42 @@ class FeatureExtractor:
             if self.enabled_features.get('t_y_var', True):
                 feature_list.append(t_y_var)
 
+            # Trigger Detection Features
+            if self.enabled_features.get('roi_trigger_fraction', True):
+                feature_list.append(roi_trigger_fraction)
+
             features = np.array(feature_list)
-            return {"pid": pid, "features": features}
-        except Exception:
-            return {"pid": load_result.get("pid"), "features": None}
+            return {'pid': pid, 'features': features, 'error': None}
+        except Exception as e:
+            return {'pid': pid, 'features': None, 'error': f'{type(e).__name__}: {e}'}
 
     # ------------------------------------------------------------------
-    def load_extract(self, pids: List[str], directory: str) -> List[Dict[str, Any]]:
-        load_results = [get_points(pid, directory) for pid in pids]
-        feature_results = [self.extract_features(res) for res in load_results]
-        return feature_results
+    def load_extract(self, pairs: List[Tuple[str, Optional[str]]]) -> List[Dict[str, Any]]:
+        """
+        Load point clouds and extract features for (pid, adc_path) pairs.
+        """
+        load_results = [get_points(pid, adc_path) for pid, adc_path in pairs]
+        return [self.extract_features(res) for res in load_results]
 
     def load_extract_parallel(
         self,
-        pids: List[str],
-        directory: str,
+        pairs: List[Tuple[str, Optional[str]]],
         chunk_size: int = 100,
         n_jobs: int = -1,
     ) -> List[Dict[str, Any]]:
-        chunks = [pids[i : i + chunk_size] for i in range(0, len(pids), chunk_size)]
-        print(f"Processing {len(pids)} PIDs in {len(chunks)} chunks of size {chunk_size}")
+        """
+        Parallel version of :meth:`load_extract` over (pid, adc_path) pairs.
+        The pairs are split into chunks of ``chunk_size``; each chunk is
+        handled by one parallel worker.
+        """
+        chunks = [pairs[i : i + chunk_size] for i in range(0, len(pairs), chunk_size)]
+        print(f"Processing {len(pairs)} PIDs in {len(chunks)} chunks of size {chunk_size}")
         results = Parallel(n_jobs=n_jobs)(
-            delayed(self.load_extract)(chunk, directory)
+            delayed(self.load_extract)(chunk)
             for chunk in tqdm(chunks, desc="Processing chunks")
         )
         flattened: List[Dict[str, Any]] = []
         for chunk_res in results:
             flattened.extend(chunk_res)
-        print(f"Processed {len(flattened)} PIDs successfully")
+        print(f"Processed {len(flattened)} PIDs")
         return flattened

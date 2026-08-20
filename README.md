@@ -35,7 +35,7 @@ python train.py <data_dir> [options]
 
 Options:
 
-- `--id-file` – path to a file with one PID per line. If omitted, all bins in `data_dir` are used.
+- `--id-file` – path to a file with one PID per line. If omitted, all bins in `data_dir` are used. When provided, PIDs are resolved directly by directory name (a pruned per-PID search) rather than by walking the whole tree, so this is much faster for a subset of a large dataset; PIDs not found in the tree are reported as errors.
 - `--n-jobs` – number of parallel workers for feature extraction (default from `utils/constants.py`).
 - `--contamination` – expected fraction of anomalies.
 - `--aspect-ratio` – camera frame aspect ratio.
@@ -94,7 +94,7 @@ Important options:
 - `--model` – path to the saved model.
 - `--output` – CSV file to write results (default `scores.csv`).
 
-Each row in the CSV contains a PID and its anomaly score.
+Each row in the CSV contains a PID, its anomaly score, and an error column (empty on success; for PIDs that failed to produce features, the score is `nan` and the column carries the reason, e.g. a missing file or too few points in the distribution).
 
 ## Running the Dashboard
 
