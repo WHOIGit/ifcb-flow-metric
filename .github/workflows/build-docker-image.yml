@@ -2,7 +2,7 @@ name: Build Docker Image
 
 on:
   push:
-    branches: [ main, feature-isolation ]
+    branches: [ main, feature-isolation, ifcbkit ]
   pull_request:
     branches: [ main ]
 
